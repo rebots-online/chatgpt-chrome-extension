@@ -12,3 +12,25 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
     chrome.tabs.sendMessage(tab.id, { type: "ASK_CHATGPT" });
   }
 });
+
+// Function to open or reuse a terminal
+let terminalWindowId = null;
+
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.type === "OPEN_TERMINAL") {
+    if (terminalWindowId) {
+      // Reuse the existing terminal
+      chrome.windows.update(terminalWindowId, { focused: true });
+    } else {
+      // Open a new terminal
+      chrome.windows.create({
+        url: "chrome://terminal/?command=" + encodeURIComponent(message.command),
+        type: "popup",
+        width: 800,
+        height: 600,
+      }, (window) => {
+        terminalWindowId = window.id;
+      });
+    }
+  }
+});
