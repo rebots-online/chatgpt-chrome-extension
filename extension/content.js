@@ -1,6 +1,6 @@
 // Listen for messages from the background script
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (message.type === "ASK_CHATGPT") {
+  if (message.type === "ASK_CHATGPT" || message.type === "SEND_TERMINAL") {
     let originalActiveElement;
     let text;
 
@@ -31,29 +31,39 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
     showLoadingCursor();
 
-    // Send the text to the API endpoint
-    fetch("http://localhost:3000", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ message: text }),
-    })
-    .then(response => response.json())
-    .then(data => {
-      // Send a message to the background script to open or reuse the terminal
+    // Send the text to the appropriate handler
+    if (message.type === "ASK_CHATGPT") {
+      fetch("http://localhost:3000", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ message: text }),
+      })
+      .then(response => response.json())
+      .then(data => {
+        // Send a message to the background script to open or reuse the terminal
+        chrome.runtime.sendMessage({
+          type: "OPEN_TERMINAL",
+          command: data.reply
+        });
+
+        restoreCursor();
+      })
+      .catch(error => {
+        restoreCursor();
+        alert("Error. Make sure you're running the server by following the instructions on https://github.com/gragland/chatgpt-chrome-extension. Also make sure you don't have an adblocker preventing requests.");
+        throw new Error(error);
+      });
+    } else if (message.type === "SEND_TERMINAL") {
+      // Send a message to the background script to open or reuse the terminal directly
       chrome.runtime.sendMessage({
         type: "OPEN_TERMINAL",
-        command: data.reply
+        command: text
       });
 
       restoreCursor();
-    })
-    .catch(error => {
-      restoreCursor();
-      alert("Error. Make sure you're running the server by following the instructions on https://github.com/gragland/chatgpt-chrome-extension. Also make sure you don't have an adblocker preventing requests.");
-      throw new Error(error);
-    });
+    }
   }
 });
 
