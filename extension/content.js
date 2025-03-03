@@ -24,7 +24,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
     if (!text) {
       alert(
-        "No text found. Select this option after right clicking on a textarea that contains text or on a selected portion of text."
+        "No text found. Select this option after right-clicking on a textarea that contains text or on a selected portion of text."
       );
       return;
     }
@@ -39,59 +39,21 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       },
       body: JSON.stringify({ message: text }),
     })
-      .then((response) => response.json())
-      .then(async (data) => {
-        // Use original text element and fallback to current active text element
-        const activeElement =
-          originalActiveElement ||
-          (document.activeElement.isContentEditable && document.activeElement);
-
-        if (activeElement) {
-          if (
-            activeElement.nodeName.toUpperCase() === "TEXTAREA" ||
-            activeElement.nodeName.toUpperCase() === "INPUT"
-          ) {
-            // Insert after selection
-            activeElement.value =
-              activeElement.value.slice(0, activeElement.selectionEnd) +
-              `\n\n${data.reply}` +
-              activeElement.value.slice(
-                activeElement.selectionEnd,
-                activeElement.length
-              );
-          } else {
-            // Special handling for contenteditable
-            const replyNode = document.createTextNode(`\n\n${data.reply}`);
-            const selection = window.getSelection();
-
-            if (selection.rangeCount === 0) {
-              selection.addRange(document.createRange());
-              selection.getRangeAt(0).collapse(activeElement, 1);
-            }
-
-            const range = selection.getRangeAt(0);
-            range.collapse(false);
-
-            // Insert reply
-            range.insertNode(replyNode);
-
-            // Move the cursor to the end
-            selection.collapse(replyNode, replyNode.length);
-          }
-        } else {
-          // Alert reply since no active text area
-          alert(`ChatGPT says: ${data.reply}`);
-        }
-
-        restoreCursor();
-      })
-      .catch((error) => {
-        restoreCursor();
-        alert(
-          "Error. Make sure you're running the server by following the instructions on https://github.com/gragland/chatgpt-chrome-extension. Also make sure you don't have an adblocker preventing requests to localhost:3000."
-        );
-        throw new Error(error);
+    .then(response => response.json())
+    .then(data => {
+      // Send a message to the background script to open or reuse the terminal
+      chrome.runtime.sendMessage({
+        type: "OPEN_TERMINAL",
+        command: data.reply
       });
+
+      restoreCursor();
+    })
+    .catch(error => {
+      restoreCursor();
+      alert("Error. Make sure you're running the server by following the instructions on https://github.com/gragland/chatgpt-chrome-extension. Also make sure you don't have an adblocker preventing requests.");
+      throw new Error(error);
+    });
   }
 });
 
