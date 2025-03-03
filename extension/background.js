@@ -1,7 +1,13 @@
-// Create a context menu item
+// Create context menu items
 chrome.contextMenus.create({
   id: "ask-chatgpt",
   title: "Ask ChatGPT",
+  contexts: ["all"],
+});
+
+chrome.contextMenus.create({
+  id: "send-terminal",
+  title: "Send Text to Terminal",
   contexts: ["all"],
 });
 
@@ -10,6 +16,9 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
   if (info.menuItemId === "ask-chatgpt") {
     // Send a message to the content script
     chrome.tabs.sendMessage(tab.id, { type: "ASK_CHATGPT" });
+  } else if (info.menuItemId === "send-terminal") {
+    // Send a message to the content script
+    chrome.tabs.sendMessage(tab.id, { type: "SEND_TERMINAL" });
   }
 });
 
